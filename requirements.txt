@@ -1,0 +1,2 @@
+fpylll>=0.6.0
+cysignals>=1.11.0
