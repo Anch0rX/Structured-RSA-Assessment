@@ -103,7 +103,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print more intermediate information.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.search_radius < 0:
+        parser.error("--search-radius must be non-negative.")
+    if args.max_candidates <= 0:
+        parser.error("--max-candidates must be a positive integer.")
+    return args
 
 
 def is_perfect_square(value: int) -> bool:
@@ -184,6 +189,10 @@ def row_l1_norm(row: Sequence[int]) -> int:
     return sum(abs(x) for x in row)
 
 
+def is_zero_row(row: Sequence[int]) -> bool:
+    return all(entry == 0 for entry in row)
+
+
 def iter_reduced_rows(matrix: IntegerMatrix) -> List[List[int]]:
     rows: List[List[int]] = []
     for i in range(matrix.nrows):
@@ -229,13 +238,19 @@ def attack_instance(
         print(f"[+] Reduction completed in {elapsed:.2f}s")
 
         candidates = iter_reduced_rows(matrix)
+        informative_candidates = [row for row in candidates if not is_zero_row(row)]
         preview = min(6, len(candidates))
         print(f"[+] Preview of top {preview} reduced rows:")
         for idx in range(preview):
             row = candidates[idx]
             print(f"    {idx}: norm={row_l1_norm(row)} row={row[:6]}")
 
-        for row in candidates[:max_candidates]:
+        if verbose:
+            print(
+                f"[*] Non-zero reduced rows available for testing: {len(informative_candidates)}"
+            )
+
+        for row in informative_candidates[:max_candidates]:
             if len(row) < 6:
                 continue
             k0, _, _, y0, _, _ = row[:6]
